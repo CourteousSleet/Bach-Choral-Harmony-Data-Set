@@ -1,65 +1,128 @@
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
 import numpy as np
-import tensorflow as tf
-from tensorflow import keras
+import pandas as pd
+from keras.models import Sequential
+from keras.layers import Dense
+from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import classification_report, accuracy_score, precision_score, recall_score
+
+dataset = pd.read_csv('jsbach_chorals_harmony.data',
+                      delimiter=',',
+                      header=None,
+                      names=['Choral ID', 'Event number',
+                             'Pitch Class C', 'Pitch Class C#/Db',
+                             'Pitch Class D', 'Pitch Class D#/Eb',
+                             'Pitch Class E', 'Pitch Class F',
+                             'Pitch Class F#/Gb', 'Pitch Class G',
+                             'Pitch Class G#/Ab', 'Pitch Class A',
+                             'Pitch Class A#/Bb', 'Pitch Class B',
+                             'Bass', 'Meter', 'Chord Label'])
 
 
-# define function to read .data file
-def read_data_file(filename):
-    data = []
-    with open(filename, 'r') as file:
-        for line in file:
-            # split line into attributes
-            attrs = line.strip().split(',')
 
-            # convert pitch class attributes to binary (0 or 1)
-            pitch_classes = [1 if x == 'YES' else 0 for x in attrs[2:14]]
+# print(dataset.sample(5, random_state=0))
+#
+# sns.pairplot(dataset, hue='Chord Label', height=5)
+# plt.show()
+#
+# sns.pairplot(dataset, hue='Bass', height=5)
+# plt.show()
+#
+# sns.pairplot(dataset, hue='Meter', height=5)
+# plt.show()
+#
+# sns.pairplot(dataset, hue='Event number', height=5)
+# plt.show()
 
-            # convert meter to integer
-            meter = int(attrs[15])
+# split the dataset into input features (X) and target variable (y)
+X_pitch = dataset.iloc[:, 2:15].replace({'YES': 1, 'NO': 0})
+X_bass = pd.get_dummies(dataset.iloc[:, 15], prefix='Bass')
+X_meter = dataset.iloc[:, 16]
+X = pd.concat([X_pitch, X_bass, X_meter], axis=1)
+X = pd.get_dummies(X)
 
-            # add row to data
-            data.append([attrs[0], int(attrs[1])] + pitch_classes + [attrs[14], meter, attrs[16]])
+y = dataset.iloc[:, 16]   # column 17 is the chord name
 
-    return np.array(data)
+# perform one-hot encoding on the target variable (chord name)
+y = pd.get_dummies(y)
+
+# split the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+archs = ['Sequential', 'MLP', 'MLP-4-layer']
+
+losses = []
+accuracies = []
 
 
-# set seed for reproducibility
-np.random.seed(123)
+# define the feedforward neural network model
+model = Sequential()
+model.add(Dense(64, input_dim=147, activation='relu'))
+model.add(Dense(32, activation='relu'))
+model.add(Dense(16, activation='relu'))
+model.add(Dense(8, activation='relu'))
+model.add(Dense(102, activation='softmax'))
 
-# read data file
-data = read_data_file('bach_chorales_harmony.data')
+# compile the model
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-# split data into inputs (X) and labels (y)
-X = data[:, 2:16].astype(int)
-y = data[:, 16]
+# fit the model to the training data
+model.fit(X_train, y_train, epochs=50, batch_size=32, verbose=2)
 
-# split data into training and testing sets (80% for training, 20% for testing)
-split = int(0.8 * len(data))
-X_train, X_test = X[:split], X[split:]
-y_train, y_test = y[:split], y[split:]
+# evaluate the model on the testing data
+loss, accuracy = model.evaluate(X_test, y_test, verbose=1)
+losses.append(loss)
+accuracies.append(accuracy)
+# print(f'Test loss: {loss:.3f}')
+# print(f'Test accuracy: {accuracy:.3f}')
 
-# define the neural network architecture
-model = keras.Sequential([
-    keras.layers.Dense(128, input_shape=(len(harmony_distribution),), activation='relu'),
-    keras.layers.Dense(64, activation='relu'),
-    keras.layers.Dense(len(harmony_distribution), activation='softmax')
-])
 
-# compile the model with appropriate loss function and optimizer
-model.compile(optimizer='adam',
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
+model = Sequential()
+model.add(Dense(64, activation='relu', input_dim=147)) # input layer with 147 features
+model.add(Dense(32, activation='relu')) # hidden layer with 32 units
+model.add(Dense(102, activation='sigmoid')) # output layer with 1 unit for binary classification
 
-# preprocess the data for training and testing
-# assuming 'X_train', 'y_train', 'X_test', 'y_test' are already defined
-X_train_preprocessed = tf.keras.utils.normalize(X_train, axis=1)
-X_test_preprocessed = tf.keras.utils.normalize(X_test, axis=1)
-y_train_categorical = tf.keras.utils.to_categorical(y_train, num_classes=len(harmony_distribution))
-y_test_categorical = tf.keras.utils.to_categorical(y_test, num_classes=len(harmony_distribution))
+# Compile the model
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
-# train the model
-model.fit(X_train_preprocessed, y_train_categorical, epochs=10)
+# Train the model
+model.fit(X_train, y_train, epochs=50, batch_size=32, validation_data=(X_test, y_test), verbose=1)
 
-# evaluate the model on test data
-test_loss, test_acc = model.evaluate(X_test_preprocessed, y_test_categorical)
-print('Test accuracy:', test_acc)
+# evaluate the model on the testing data
+loss, accuracy = model.evaluate(X_test, y_test, verbose=1)
+losses.append(loss)
+accuracies.append(accuracy)
+
+
+model = Sequential()
+model.add(Dense(64, activation='relu', input_dim=147)) # input layer with 147 features
+model.add(Dense(32, activation='relu')) # hidden layer with 32 units
+model.add(Dense(16, activation='relu')) # hidden layer with 32 units
+model.add(Dense(8, activation='relu')) # hidden layer with 32 units
+model.add(Dense(4, activation='relu')) # hidden layer with 32 units
+model.add(Dense(102, activation='sigmoid')) # output layer with 1 unit for binary classification
+
+# Compile the model
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# Train the model
+model.fit(X_train, y_train, epochs=50, batch_size=32, validation_data=(X_test, y_test), verbose=1)
+
+# evaluate the model on the testing data
+loss, accuracy = model.evaluate(X_test, y_test, verbose=1)
+losses.append(loss)
+accuracies.append(accuracy)
+
+
+# Plot the results
+plt.plot(archs, losses)
+plt.xlabel('Architectures')
+plt.ylabel('Test loss')
+plt.show()
+
+plt.plot(archs, accuracies)
+plt.xlabel('Architectures')
+plt.ylabel('Accuracies')
+plt.show()

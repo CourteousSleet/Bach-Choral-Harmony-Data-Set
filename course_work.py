@@ -51,7 +51,7 @@ y = pd.get_dummies(y)
 # split the dataset into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-archs = ['Sequential', 'MLP', 'MLP-4-layer']
+archs = ['Feed-Forward', 'MLP 1 layer', 'MLP 4 layers']
 
 losses = []
 accuracies = []
@@ -82,7 +82,7 @@ accuracies.append(accuracy)
 model = Sequential()
 model.add(Dense(64, activation='relu', input_dim=147)) # input layer with 147 features
 model.add(Dense(32, activation='relu')) # hidden layer with 32 units
-model.add(Dense(102, activation='sigmoid')) # output layer with 1 unit for binary classification
+model.add(Dense(102, activation='sigmoid')) # output layer with 102 units for the classification
 
 # Compile the model
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
@@ -118,11 +118,11 @@ accuracies.append(accuracy)
 
 # Plot the results
 plt.plot(archs, losses)
-plt.xlabel('Architectures')
+plt.xlabel('Architecture')
 plt.ylabel('Test loss')
 plt.show()
 
 plt.plot(archs, accuracies)
-plt.xlabel('Architectures')
-plt.ylabel('Accuracies')
+plt.xlabel('Architecture')
+plt.ylabel('Accuracy')
 plt.show()
